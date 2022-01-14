@@ -61,8 +61,9 @@ int main(int argc, char *argv[])
                     qDebug() << "Success 1";
                     master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 115200);
                     master->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::Parity::EvenParity);
-                    QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::HoldingRegisters, 1005, 2);
-                    if (QModbusReply *reply = master->sendReadRequest(request, 3)) {
+                    QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
+                    request2.setValue(0, 0x0001);
+                    if (QModbusReply *reply = master->sendWriteRequest(request, 15)) {
                         if (!reply->isFinished()) {
                             QObject::connect(reply, &QModbusReply::finished,[=] {
                                 if (reply->error() == QModbusDevice::NoError) {
