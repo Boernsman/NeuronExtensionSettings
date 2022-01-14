@@ -59,15 +59,15 @@ int main(int argc, char *argv[])
                     qDebug() << "Success 1" << reply->result().value(0);
                     QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
                     request2.setValue(0, 0x0001);
-                    if (QModbusReply *reply = master->sendWriteRequest(request, 15)) {
-                        if (!reply->isFinished()) {
-                            QObject::connect(reply, &QModbusReply::finished,[=] {
-                                if (reply->error() == QModbusDevice::NoError) {
+                    if (QModbusReply *reply2 = master->sendWriteRequest(request, 15)) {
+                        if (!reply2->isFinished()) {
+                            QObject::connect(reply2, &QModbusReply::finished,[=] {
+                                if (reply2->error() == QModbusDevice::NoError) {
                                     qDebug() << "Success 2" << reply->result().value(0);
-                                    QModbusDataUnit request3= QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1002, 1);
-                                    if (QModbusReply *reply = master->sendReadRequest(request, 15)) {
-                                        if (reply->error() == QModbusDevice::NoError) {
-                                            qDebug() << "Success 3" << reply->result().value(0);
+                                    QModbusDataUnit request3= QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
+                                    if (QModbusReply *reply3 = master->sendReadRequest(request, 15)) {
+                                        if (reply3->error() == QModbusDevice::NoError) {
+                                            qDebug() << "Success 3" << reply3->result().value(0);
                                         }
                                     }
                                 } else {
