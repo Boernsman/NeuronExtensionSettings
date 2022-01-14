@@ -37,10 +37,15 @@ int main(int argc, char *argv[])
     QModbusRtuSerialMaster *master = new QModbusRtuSerialMaster();
     master->setConnectionParameter(QModbusDevice::SerialPortNameParameter, "/dev/ttyNS1");
     master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 19200);
-    master->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::Parity::EvenParity);
-     //m_modbusTcpClient->setConnectionParameter(QModbusDevice::NetworkAddressParameter, m_hostAddress.toString());
+    master->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::Parity::NoParity);
+    //m_modbusTcpClient->setConnectionParameter(QModbusDevice::NetworkAddressParameter, m_hostAddress.toString());
     master->setTimeout(200);
     master->setNumberOfRetries(3);
+
+    if (!master->connectDevice()) {
+        qWarning() << "Connecing to modbus RTU master failed";
+        return -1;
+    }
 
 
     QModbusDataUnit request = QModbusDataUnit(QModbusDataUnit::RegisterType::HoldingRegisters, 1027, 2);
@@ -53,8 +58,22 @@ int main(int argc, char *argv[])
 
 
                 if (reply->error() == QModbusDevice::NoError) {
-                    qDebug() << "Success";
-                    return;
+                    qDebug() << "Success 1";
+                    master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 115200);
+                    master->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::Parity::EvenParity);
+                    QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::HoldingRegisters, 1005, 2);
+                    if (QModbusReply *reply = master->sendReadRequest(request, 3)) {
+                        if (!reply->isFinished()) {
+                            QObject::connect(reply, &QModbusReply::finished,[=] {
+                                if (reply->error() == QModbusDevice::NoError) {
+                                    qDebug() << "Success 2";
+                                } else {
+                                    qDebug() << "Error" << reply->errorString();
+                                }
+                            });
+                        }
+                    }
+
                 } else {
                     qDebug() << "Error" << reply->errorString();
                 }
@@ -64,5 +83,8 @@ int main(int argc, char *argv[])
         qWarning() << "Error: " << master->errorString();
         return -1;
     }
+
+    QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::HoldingRegisters, 1005, 2);
+
     return a.exec();
 }
