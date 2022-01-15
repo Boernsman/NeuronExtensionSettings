@@ -15,8 +15,9 @@ Discovery::Discovery(const QString &serialPort, uint baudrate, QSerialPort::Pari
 bool Discovery::startDiscovery(int startAddress, int endAddress)
 {
     qDebug() << "NeuronDiscovery: start Discovery, start Address" << startAddress << "end address" << endAddress;
-    if (m_master->state() != QModbusDevice::State::ConnectedState) {
-        qDebug() << "Discovery: Modbus RTU interface is not connected";
+
+    if (!m_master->connectDevice()) {
+        qDebug() << "Discovery: Could not connect to port";
         return false;
     }
 
