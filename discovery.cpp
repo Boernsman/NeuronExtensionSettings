@@ -9,7 +9,7 @@ Discovery::Discovery(const QString &serialPort, uint baudrate, QSerialPort::Pari
     m_master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, baudrate);
     m_master->setConnectionParameter(QModbusDevice::SerialParityParameter, parity);
     m_master->setTimeout(200);
-    m_master->setNumberOfRetries(3);
+    m_master->setNumberOfRetries(1);
 }
 
 bool Discovery::startDiscovery(int startAddress, int endAddress)
@@ -77,7 +77,8 @@ void Discovery::getNext(int address)
             } else if (result[4] == 273) {
                 model = ExtensionTypes::xS51;
             } else {
-                qDebug() << "Unkown model";
+                qDebug() << "Unkown model" << result[4];
+                model = ExtensionTypes::Unknown;
             }
             qDebug() << "     - Model" << model;
         }

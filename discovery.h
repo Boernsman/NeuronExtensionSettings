@@ -16,7 +16,8 @@ public:
         xS40,
         xS50,
         xS11,
-        xS51
+        xS51,
+        Unknown
     };
     Q_ENUM(ExtensionTypes)
 

@@ -1,4 +1,5 @@
 #include "writesettings.h"
+
 #include <QSerialPort>
 #include <QDebug>
 
@@ -53,7 +54,8 @@ void WriteSettings::write(uint address, WriteSettings::Baudrate baud, WriteSetti
                         if (!reply2->isFinished()) {
                             QObject::connect(reply2, &QModbusReply::finished,[=] {
                                 if (reply2->error() == QModbusDevice::NoError) {
-                                    qDebug() << "Storing values successfull" << reply2->result().value(0);
+                                    qDebug() << "Storing the values was successfull" << reply2->result().value(0);
+                                    qDebug() << "Power cycle the extension now!";
                                     QModbusDataUnit request3= QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
                                     if (QModbusReply *reply3 = m_master->sendReadRequest(request, 15)) {
                                         if (reply3->error() == QModbusDevice::NoError) {
@@ -66,7 +68,6 @@ void WriteSettings::write(uint address, WriteSettings::Baudrate baud, WriteSetti
                             });
                         }
                     }
-
                 } else {
                     qDebug() << "Error" << reply->errorString();
                 }
