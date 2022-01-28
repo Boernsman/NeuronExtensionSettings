@@ -29,7 +29,6 @@ public:
 private:
     QModbusRtuSerialMaster *m_master = nullptr;
 
-    int m_startAddress;
     int m_endAddress;
     int m_sweepingAddress = 1;
     bool m_discoveryOngoing = false;
@@ -37,6 +36,7 @@ private:
     void getNext(int address);
 
 signals:
+    void discoveryFinished();
 
 };
 

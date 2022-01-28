@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QtSerialBus>
 #include <QDebug>
+#include <QObject>
 #include <QSerialPort>
 #include <QSerialPortInfo>
 
@@ -18,55 +19,68 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
 
-    // A boolean option with multiple names (-d, --discover)
-    QCommandLineOption discoveryOption(QStringList() << "d" << "discover", "main", "Discover method");
+    QCommandLineOption verboseOption("verbose", "Verbose output.");
+    parser.addOption(verboseOption);
+
+    QCommandLineOption discoveryOption("discover", "Discover Neuron extensions.");
     parser.addOption(discoveryOption);
 
-    QCommandLineOption portOption(QStringList() << "s" << "serial port", "main", "Set port");
-    parser.addOption(discoveryOption);
-
-    QCommandLineOption parityOption(QStringList() << "p" << "parity", "main", "Set parity");
-    parser.addOption(discoveryOption);
-
-    QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "main", "Set baudrate");
-    parser.addOption(discoveryOption);
-
-    QCommandLineOption writeOption(QStringList() << "w" << "write", "main", "Write settings to neuron extension.");
+    QCommandLineOption writeOption("write", "Write settings to neuron extension.");
     parser.addOption(writeOption);
+
+    QCommandLineOption serialPortOption(QStringList() << "s" << "serial port", "System path to serial port", "serial port");
+    parser.addOption(serialPortOption);
+
+    QCommandLineOption parityOption(QStringList() << "p" << "parity", "Set parity even|none, even is default", "parity");
+    parser.addOption(parityOption);
+
+    QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "Set baudrate, 19200 default", "baudrate");
+    parser.addOption(baudOption);
 
     // Process the actual command line arguments given by the user
     parser.process(a);
     QTextStream qtin(stdin);
 
     QString portName;
-    if (!parser.isSet(portOption)) {
-        qDebug() << "Select the serial port [1, "+QString::number(QSerialPortInfo::availablePorts().count())+"]:";
-        int i = 0;
-        QList<QSerialPortInfo> infoList;
-        foreach (QSerialPortInfo info, QSerialPortInfo::availablePorts()) {
-            i++;
-            qDebug() << QString::number(i) << info.portName();
-            infoList.insert(i, info);
-        }
-        int j; qtin >> j;
-        if (j < 1 || j > i) {
-            qWarning() << "Selected port not available.";
-            return -1;
-        }
-
-        if (infoList.at(j).isBusy()) {
-            qDebug() << "Selected serial port is busy.";
-            return -1;
-        }
-        portName = infoList.at(j).portName();
+    if (parser.isSet(serialPortOption)) {
+        portName = parser.value(serialPortOption);
     } else {
-        portName = parser.value(portOption);
+        while (1) {
+            qDebug() << "Select the serial port [1, "+QString::number(QSerialPortInfo::availablePorts().count())+"]:";
+
+            int i = 0;
+            QList<QSerialPortInfo> infoList;
+            foreach (QSerialPortInfo info, QSerialPortInfo::availablePorts()) {
+                i++;
+                qDebug() << i << info.portName();
+                infoList.append(info);
+            }
+            qDebug() << "Enter number:";
+            int j; qtin >> j;
+            if (j < 1 || j > i) {
+                qWarning() << "Selected number not available." << QString::number(j);
+                continue;
+            }
+
+            if (infoList.at(j-1).isBusy()) {
+                qDebug() << "Selected serial port is busy, select another one.";
+                continue;
+            }
+            qDebug() << "The selected port is" << infoList.at(j-1).systemLocation();
+            portName = infoList.at(j-1).systemLocation();
+            break;
+        }
     }
 
-    bool ok;
-    int baudrate = parser.value(baudOption).toInt(&ok);
-    if (!ok) {
-        qDebug() << "Baudrate is not valid" << parser.value(baudOption);
+    int baudrate = 19200;
+    if (parser.isSet(baudOption)) {
+        bool ok;
+        baudrate = parser.value(baudOption).toInt(&ok);
+        if (!ok) {
+            qDebug() << "Baudrate is not valid" << parser.value(baudOption);
+        }
+    } else {
+        qDebug() << "Default baudrate:" << baudrate;
     }
 
     QSerialPort::Parity parity = QSerialPort::Parity::EvenParity;
@@ -74,18 +88,34 @@ int main(int argc, char *argv[])
         QString parityValue = parser.value(parityOption);
         if (parityValue.startsWith("none")) {
             parity = QSerialPort::Parity::NoParity;
-        } else if (parityValue.startsWith("odd")) {
+        } else if (parityValue.startsWith("even")) {
             parity = QSerialPort::Parity::OddParity;
+        } else {
+            qDebug() << "Parity" << parityValue << "is not supported, must be 'even' or 'none'";
         }
+    } else {
+        qDebug() << "Default parity:" << parity;
+    }
+
+    if (parser.isSet(verboseOption)) {
+        QLoggingCategory::setFilterRules(QStringLiteral("qt.modbus* = true"));
     }
 
     if (parser.isSet(discoveryOption)) {
         qDebug() << "Discovery: Port" << portName << "baud rate" << baudrate << "parity" << parity;
         Discovery discover(portName, baudrate, parity);
-        discover.startDiscovery(1, 15);
+        if (!discover.startDiscovery(1, 15)) {
+            return -1;
+        }
+        QObject::connect(&discover, &Discovery::discoveryFinished, [] {
+            qDebug() << "Discovery finished";
+            return 0;
+        });
     } else if (parser.isSet(writeOption)){
         WriteSettings settings(portName);
         settings.write(3, WriteSettings::Baudrate_115200, WriteSettings::ParityEven);
+    } else {
+        qDebug() << "No discovery and no write option is set. Doing nothing.";
     }
 
     return a.exec();
