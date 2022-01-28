@@ -1,3 +1,20 @@
+/*
+ * This file is part of the Neuron Extension Settings application.
+ * Copyright (c) 2022 Berhard Trinnes.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "discovery.h"
 
 #include <QDebug>
@@ -81,27 +98,23 @@ void Discovery::getNext(int address)
                 if (result.length() == 7) {
                     qDebug() << "Found Extension";
                     qDebug() << "     - Slave Address" << reply->serverAddress();
-                    qDebug() << "     - Hardware Id" << result[4];
                     qDebug() << "     - Serial number" << (static_cast<quint32>(result[6])<<16 | result[5]);
 
-                    ExtensionTypes model;
                     if (result[4] == 1) {
-                        model = ExtensionTypes::xS10;
+                        qDebug() << "     - Model xS10";
                     } else if (result[4] == 784) {
-                        model = ExtensionTypes::xS30;
+                        qDebug() << "     - Model xS30";
                     } else if (result[4] == 528) {
-                        model = ExtensionTypes::xS40;
+                        qDebug() << "     - Model xS40";
                     } else if (result[4] == 5) {
-                        model = ExtensionTypes::xS50;
+                        qDebug() << "     - Model xS50";
                     } else if (result[4] == 272) {
-                        model = ExtensionTypes::xS11;
+                        qDebug() << "     - Model xS11";
                     } else if (result[4] == 273) {
-                        model = ExtensionTypes::xS51;
+                        qDebug() << "     - Model xS51";
                     } else {
-                        qDebug() << "Unkown model" << result[4];
-                        model = ExtensionTypes::Unknown;
+                        qDebug() << "     - Unkown model" << result[4];
                     }
-                    qDebug() << "     - Model" << model;
                 }
                 if (reply->serverAddress() >= m_endAddress) {
                     m_discoveryOngoing = false;
@@ -114,7 +127,7 @@ void Discovery::getNext(int address)
             });
         } else {
             reply->deleteLater();
-            qDebug() << "   - reply finished immediatelly";
+            qDebug() << "   - Reply finished immediatelly";
         }
     } else {
         qWarning() << "     - Read error: " << m_master->errorString();
