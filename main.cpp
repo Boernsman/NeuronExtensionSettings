@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
     QCommandLineOption serialPortOption(QStringList() << "s" << "serial port", "System path to serial port", "serial port");
     parser.addOption(serialPortOption);
 
-    QCommandLineOption parityOption(QStringList() << "p" << "parity", "Set parity even|none, even is default", "parity");
+    QCommandLineOption parityOption(QStringList() << "p" << "parity", "Set parity even|none, 'none' is default", "parity");
     parser.addOption(parityOption);
 
-    QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "Set baudrate, 19200 default", "baudrate");
+    QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "Set baudrate, 115200 default", "baudrate");
     parser.addOption(baudOption);
 
     // Process the actual command line arguments given by the user
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    int baudrate = 19200;
+    int baudrate = 115200;
     if (parser.isSet(baudOption)) {
         bool ok;
         baudrate = parser.value(baudOption).toInt(&ok);
@@ -83,13 +83,13 @@ int main(int argc, char *argv[])
         qDebug() << "Default baudrate:" << baudrate;
     }
 
-    QSerialPort::Parity parity = QSerialPort::Parity::EvenParity;
+    QSerialPort::Parity parity = QSerialPort::Parity::NoParity;
     if (parser.isSet(parityOption)) {
         QString parityValue = parser.value(parityOption);
         if (parityValue.startsWith("none")) {
             parity = QSerialPort::Parity::NoParity;
         } else if (parityValue.startsWith("even")) {
-            parity = QSerialPort::Parity::OddParity;
+            parity = QSerialPort::Parity::EvenParity;
         } else {
             qDebug() << "Parity" << parityValue << "is not supported, must be 'even' or 'none'";
         }
@@ -103,17 +103,14 @@ int main(int argc, char *argv[])
 
     if (parser.isSet(discoveryOption)) {
         qDebug() << "Discovery: Port" << portName << "baud rate" << baudrate << "parity" << parity;
-        Discovery discover(portName, baudrate, parity);
-        if (!discover.startDiscovery(1, 15)) {
+        Discovery *discover = new Discovery(portName, baudrate, parity);
+        if (!discover->startDiscovery(1, 15)) {
             return -1;
         }
-        QObject::connect(&discover, &Discovery::discoveryFinished, [] {
-            qDebug() << "Discovery finished";
-            return 0;
-        });
+        QObject::connect(discover, &Discovery::discoveryFinished, &a, &QCoreApplication::quit);
     } else if (parser.isSet(writeOption)){
-        WriteSettings settings(portName);
-        settings.write(3, WriteSettings::Baudrate_115200, WriteSettings::ParityEven);
+        WriteSettings *settings = new WriteSettings(portName);
+        settings->write(3, WriteSettings::Baudrate_115200, WriteSettings::ParityEven);
     } else {
         qDebug() << "No discovery and no write option is set. Doing nothing.";
     }

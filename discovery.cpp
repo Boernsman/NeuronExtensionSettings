@@ -16,16 +16,20 @@ Discovery::Discovery(const QString &serialPort, uint baudrate, QSerialPort::Pari
     m_master->setNumberOfRetries(0);
 
     connect (m_master, &QModbusRtuSerialMaster::errorOccurred, this,  [this] {
-        qDebug() << "Modbus RTU error:" << m_master->errorString();
+        qDebug() << "   - Modbus RTU error:" << m_master->errorString();
     });
     connect (m_master, &QModbusRtuSerialMaster::stateChanged, this,  [] (QModbusDevice::State state) {
-        qDebug() << "Modbus state changed:" << state;
+
+        bool connected = (state == QModbusDevice::State::ConnectedState);
+        qDebug() << "   - Modbus connected state changed:" << connected;
     });
 }
 
 bool Discovery::startDiscovery(int startAddress, int endAddress)
 {
-    qDebug() << "Start Discovery, start Address" << startAddress << "end address" << endAddress;
+    qDebug() << "Start Discovery";
+    qDebug() << "   - Start Address" << startAddress;
+    qDebug() << "   - End address" << endAddress;
 
     if (!m_master->connectDevice()) {
         qDebug() << "Could not connect to port";
@@ -43,9 +47,9 @@ bool Discovery::startDiscovery(int startAddress, int endAddress)
     }
 
     m_endAddress = endAddress;
-
     m_sweepingAddress = startAddress;
-    getNext(startAddress);
+
+    getNext(m_sweepingAddress);
     m_discoveryOngoing = true;
     return true;
 }
@@ -63,9 +67,8 @@ void Discovery::getNext(int address)
     qDebug() << "   - Probing address" << address;
     if (QModbusReply *reply = m_master->sendReadRequest(request, address)) {
         if (!reply->isFinished()) {
-            connect(reply, &QModbusReply::finished, reply, &QModbusReply::deleteLater);
+            //connect(reply, &QModbusReply::finished, reply, &QModbusReply::deleteLater);
             connect(reply, &QModbusReply::finished, this, [this, reply] {
-                qDebug() << "   - Reply finshed" << reply->serverAddress();
                 if (reply->serverAddress() == m_sweepingAddress) {
                     m_sweepingAddress = reply->serverAddress()+1;
                 } else if (reply->serverAddress() < m_sweepingAddress){
@@ -109,14 +112,11 @@ void Discovery::getNext(int address)
                         getNext(m_sweepingAddress);
                 }
             });
-            connect(reply, &QModbusReply::errorOccurred, this, [reply] (QModbusDevice::Error error) {
-                qDebug() << "   - error occured" << reply->serverAddress() << error << reply->errorString();
-            });
         } else {
             reply->deleteLater();
             qDebug() << "   - reply finished immediatelly";
         }
     } else {
-        qWarning() << "Read error: " << m_master->errorString();
+        qWarning() << "     - Read error: " << m_master->errorString();
     }
 }
