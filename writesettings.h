@@ -45,7 +45,7 @@ public:
     Q_ENUM(Parity)
 
     explicit WriteSettings(const QString &serialPort, uint baudrate, QSerialPort::Parity parity, QObject *parent = nullptr);
-    void write(uint address, Baudrate baud, Parity parity);
+    void write(uint address, uint writeAddress, Baudrate writeBaud, Parity writeParity);
 
 private:
     QModbusRtuSerialMaster *m_master = nullptr;

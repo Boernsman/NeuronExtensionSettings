@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
     QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "Set baudrate, 115200 default", "baudrate");
     parser.addOption(baudOption);
 
+    QCommandLineOption addressOption(QStringList() << "a" << "address", "Set address, [1, 254] default 15", "address");
+    parser.addOption(addressOption);
+
     QCommandLineOption writebaudOption(QStringList() << "wb" << "writebaudrate", "Set write baudrate, 115200 default", "baudrate");
     parser.addOption(writebaudOption);
 
@@ -135,7 +138,18 @@ int main(int argc, char *argv[])
         }
         QObject::connect(discover, &Discovery::discoveryFinished, &a, &QCoreApplication::quit);
     } else if (parser.isSet(writeOption)){
+
         WriteSettings *settings = new WriteSettings(portName, baudrate, parity);
+
+        int address = 15;
+        if (parser.isSet(addressOption)) {
+            bool ok;
+            address = parser.value(addressOption).toInt(&ok);
+            if (!ok) {
+                qDebug() << "Address is not valid" << parser.value(addressOption);
+                return -1;
+            }
+        }
 
         int writeSettingAddress = 15;
         if (parser.isSet(writeaddressOption)) {
@@ -143,9 +157,9 @@ int main(int argc, char *argv[])
             writeSettingAddress = parser.value(writeaddressOption).toInt(&ok);
             if (!ok) {
                 qDebug() << "Write address is not valid" << parser.value(writeaddressOption);
+                return -1;
             }
-            return -1;
-       }
+        }
 
         WriteSettings::Baudrate writeSettingBaudrate = WriteSettings::Baudrate::Baudrate_19200;
         if (parser.isSet(writebaudOption)) {
@@ -154,12 +168,13 @@ int main(int argc, char *argv[])
             int writeBaudrate = parser.value(writebaudOption).toInt(&ok);
             if (!ok) {
                 qDebug() << "Write baudrate is not valid" << parser.value(writebaudOption);
+                return -1;
             }
 
             if (writeBaudrate == 2400) {
                 writeSettingBaudrate = WriteSettings::Baudrate_2400;
             } else if (writeBaudrate == 4800) {
-                 writeSettingBaudrate= WriteSettings::Baudrate_4800;
+                writeSettingBaudrate= WriteSettings::Baudrate_4800;
             } else if (writeBaudrate == 9600) {
                 writeSettingBaudrate = WriteSettings::Baudrate_9600;
             } else if (writeBaudrate == 19200) {
@@ -191,7 +206,14 @@ int main(int argc, char *argv[])
         } else {
             qDebug() << "Default write parity:" << writeSettingParity;
         }
-        settings->write(writeSettingAddress, writeSettingBaudrate, writeSettingParity);
+        qDebug() << "Write settings";
+        qDebug() << "   - Address:" << address;
+        qDebug() << "   - Baudrate:" << baudrate;
+        qDebug() << "   - Parity:" << parity;
+        qDebug() << "   - Write address:" << writeSettingAddress;
+        qDebug() << "   - Write baudrate:" << writeSettingBaudrate;
+        qDebug() << "   - Write parity:" << writeSettingParity;
+        settings->write(address, writeSettingAddress, writeSettingBaudrate, writeSettingParity);
         QObject::connect(settings, &WriteSettings::writeFinished, &a, &QCoreApplication::quit);
     } else {
         qDebug() << "No discovery and no write option is set. Doing nothing.";

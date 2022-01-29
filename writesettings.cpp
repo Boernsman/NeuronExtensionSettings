@@ -42,60 +42,68 @@ WriteSettings::WriteSettings(const QString &serialPort, uint baudrate, QSerialPo
     });
 }
 
-void WriteSettings::write(uint address, WriteSettings::Baudrate baud, WriteSettings::Parity parity)
+void WriteSettings::write(uint address, uint writeAddress, WriteSettings::Baudrate writeBaud, WriteSettings::Parity writeParity)
 {
-    if (address < 1 || address > 255) {
-        qWarning() << "Write settings: Address not valid" << address;
+    qDebug() << "Write";
+    if (writeAddress < 1 || writeAddress > 255) {
+        qWarning() << "     - Write address is not valid" << writeAddress;
         return;
     }
     uint16_t valueReg0 = 0x0000; //Register 1027
     uint16_t valueReg1 = 0x0000; //Register 1028
 
-    valueReg0 = baud; //first 12 bits
+    valueReg0 = writeBaud; //first 12 bits
 
-    if (parity != Parity::ParityNone) {
+    if (writeParity != Parity::ParityNone) {
         valueReg0 |= (1 << 13);
-        if (parity == ParityOdd) {
+        if (writeParity == ParityOdd) {
             valueReg0 |= (1 << 14);
         }
     }
     //valueReg0 |= (1 << 15);
-    valueReg1 = address;
+    valueReg1 = writeAddress;
 
     if (!m_master->connectDevice()) {
-        qWarning() << "Connecing to modbus RTU master failed";
+        qWarning() << "     - Connecing to modbus RTU master failed";
         return;
     }
-
 
     QModbusDataUnit request = QModbusDataUnit(QModbusDataUnit::RegisterType::HoldingRegisters, 1027, 2);
     request.setValue(0, valueReg0);
     request.setValue(1, valueReg1);
 
-    if (QModbusReply *reply = m_master->sendWriteRequest(request, 15)) {
+    if (QModbusReply *reply = m_master->sendWriteRequest(request, address)) {
         if (!reply->isFinished()) {
-            QObject::connect(reply, &QModbusReply::finished,[=] {
+            connect(reply, &QModbusReply::finished, this, [=] {
                 if (reply->error() == QModbusDevice::NoError) {
-                    qDebug() << "Writting setting successfull" << reply->result().value(0);
+                    qDebug() << "Writing settings successfull";
+                    qDebug() << "Sending store command";
                     QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
                     request2.setValue(0, 0x0001);
-                    if (QModbusReply *reply2 = m_master->sendWriteRequest(request, 15)) {
+                    if (QModbusReply *reply2 = m_master->sendWriteRequest(request, address)) {
                         if (!reply2->isFinished()) {
-                            QObject::connect(reply2, &QModbusReply::finished,[=] {
+                            connect(reply2, &QModbusReply::finished, reply2, &QModbusReply::deleteLater);
+                            connect(reply2, &QModbusReply::finished, this, [=] {
                                 if (reply2->error() == QModbusDevice::NoError) {
-                                    qDebug() << "Storing the values was successfull" << reply2->result().value(0);
+                                    qDebug() << "Storing the values was successfull";
                                     qDebug() << "Power cycle the extension now!";
                                     emit writeFinished();
                                 } else {
                                     qDebug() << "Error" << reply->errorString();
                                 }
                             });
+                        } else {
+                            reply2->deleteLater();
                         }
-                    }
+                    } else {
+                        qWarning() << "Error: " << m_master->errorString();
+                    } // Storage command reply
                 } else {
                     qDebug() << "Error" << reply->errorString();
                 }
             });
+        } else {
+            reply->deleteLater();
         }
     } else {
         qWarning() << "Error: " << m_master->errorString();
