@@ -20,14 +20,26 @@
 #include <QSerialPort>
 #include <QDebug>
 
-WriteSettings::WriteSettings(const QString &serialPort, QObject *parent) : QObject(parent)
+WriteSettings::WriteSettings(const QString &serialPort, uint baudrate, QSerialPort::Parity parity, QObject *parent) : QObject(parent)
 {
     m_master = new QModbusRtuSerialMaster(this);
     m_master->setConnectionParameter(QModbusDevice::SerialPortNameParameter, serialPort);
-    m_master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 19200);
-    m_master->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::Parity::NoParity);
-    m_master->setTimeout(200);
+    m_master->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::StopBits::OneStop);
+    m_master->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::DataBits::Data8);
+    m_master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, baudrate);
+    m_master->setConnectionParameter(QModbusDevice::SerialParityParameter, parity);
+
+    m_master->setTimeout(1000);
     m_master->setNumberOfRetries(3);
+
+    connect (m_master, &QModbusRtuSerialMaster::errorOccurred, this,  [this] {
+        qDebug() << "   - Modbus RTU error:" << m_master->errorString();
+    });
+    connect (m_master, &QModbusRtuSerialMaster::stateChanged, this,  [] (QModbusDevice::State state) {
+
+        bool connected = (state == QModbusDevice::State::ConnectedState);
+        qDebug() << "   - Modbus connected state changed:" << connected;
+    });
 }
 
 void WriteSettings::write(uint address, WriteSettings::Baudrate baud, WriteSettings::Parity parity)
@@ -73,12 +85,7 @@ void WriteSettings::write(uint address, WriteSettings::Baudrate baud, WriteSetti
                                 if (reply2->error() == QModbusDevice::NoError) {
                                     qDebug() << "Storing the values was successfull" << reply2->result().value(0);
                                     qDebug() << "Power cycle the extension now!";
-                                    QModbusDataUnit request3= QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
-                                    if (QModbusReply *reply3 = m_master->sendReadRequest(request, 15)) {
-                                        if (reply3->error() == QModbusDevice::NoError) {
-                                            qDebug() << "Please power cycle the extension";
-                                        }
-                                    }
+                                    emit writeFinished();
                                 } else {
                                     qDebug() << "Error" << reply->errorString();
                                 }

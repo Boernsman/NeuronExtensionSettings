@@ -54,6 +54,15 @@ int main(int argc, char *argv[])
     QCommandLineOption baudOption(QStringList() << "b" << "baudrates", "Set baudrate, 115200 default", "baudrate");
     parser.addOption(baudOption);
 
+    QCommandLineOption writebaudOption(QStringList() << "wb" << "writebaudrate", "Set write baudrate, 115200 default", "baudrate");
+    parser.addOption(writebaudOption);
+
+    QCommandLineOption writeaddressOption(QStringList() << "wa" << "writeaddress", "Set write address, 1 default", "address");
+    parser.addOption(writeaddressOption);
+
+    QCommandLineOption writeparityOption(QStringList() << "wp" << "writeparity", "Set write parity even|none, 'even' is default", "parity");
+    parser.addOption(writeparityOption);
+
     // Process the actual command line arguments given by the user
     parser.process(a);
     QTextStream qtin(stdin);
@@ -126,8 +135,64 @@ int main(int argc, char *argv[])
         }
         QObject::connect(discover, &Discovery::discoveryFinished, &a, &QCoreApplication::quit);
     } else if (parser.isSet(writeOption)){
-        WriteSettings *settings = new WriteSettings(portName);
-        settings->write(3, WriteSettings::Baudrate_115200, WriteSettings::ParityEven);
+        WriteSettings *settings = new WriteSettings(portName, baudrate, parity);
+
+        int writeSettingAddress = 15;
+        if (parser.isSet(writeaddressOption)) {
+            bool ok;
+            writeSettingAddress = parser.value(writeaddressOption).toInt(&ok);
+            if (!ok) {
+                qDebug() << "Write address is not valid" << parser.value(writeaddressOption);
+            }
+            return -1;
+       }
+
+        WriteSettings::Baudrate writeSettingBaudrate = WriteSettings::Baudrate::Baudrate_19200;
+        if (parser.isSet(writebaudOption)) {
+
+            bool ok;
+            int writeBaudrate = parser.value(writebaudOption).toInt(&ok);
+            if (!ok) {
+                qDebug() << "Write baudrate is not valid" << parser.value(writebaudOption);
+            }
+
+            if (writeBaudrate == 2400) {
+                writeSettingBaudrate = WriteSettings::Baudrate_2400;
+            } else if (writeBaudrate == 4800) {
+                 writeSettingBaudrate= WriteSettings::Baudrate_4800;
+            } else if (writeBaudrate == 9600) {
+                writeSettingBaudrate = WriteSettings::Baudrate_9600;
+            } else if (writeBaudrate == 19200) {
+                writeSettingBaudrate = WriteSettings::Baudrate_19200;
+            } else if (writeBaudrate == 38400) {
+                writeSettingBaudrate = WriteSettings::Baudrate_38400;
+            } else if (writeBaudrate == 57600) {
+                writeSettingBaudrate = WriteSettings::Baudrate_57600;
+            } else if (writeBaudrate == 115200) {
+                writeSettingBaudrate = WriteSettings::Baudrate_115200;
+            } else {
+                qDebug() << "Write baudrate is not valid";
+                return -1;
+            }
+        }
+        WriteSettings::Parity writeSettingParity = WriteSettings::Parity::ParityEven;
+        if (parser.isSet(writeparityOption)) {
+            QString writeParityValue = parser.value(parityOption);
+            if (writeParityValue.startsWith("none")) {
+                writeSettingParity = WriteSettings::Parity::ParityNone;
+            } else if (writeParityValue.startsWith("even")) {
+                writeSettingParity = WriteSettings::Parity::ParityEven;
+            } else if (writeParityValue.startsWith("odd")) {
+                writeSettingParity = WriteSettings::Parity::ParityOdd;
+            } else {
+                qDebug() << "Write parity" << writeParityValue << "is not supported, must be 'even','none' or 'odd'";
+                return -1;
+            }
+        } else {
+            qDebug() << "Default write parity:" << writeSettingParity;
+        }
+        settings->write(writeSettingAddress, writeSettingBaudrate, writeSettingParity);
+        QObject::connect(settings, &WriteSettings::writeFinished, &a, &QCoreApplication::quit);
     } else {
         qDebug() << "No discovery and no write option is set. Doing nothing.";
     }

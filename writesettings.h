@@ -19,6 +19,7 @@
 #define WRITESETTINGS_H
 
 #include <QObject>
+#include <QSerialPort>
 #include <QModbusRtuSerialMaster>
 
 class WriteSettings : public QObject
@@ -26,12 +27,12 @@ class WriteSettings : public QObject
     Q_OBJECT
 public:
     enum Baudrate {
-        Baurate_2400 = 11,
-        Baurate_4800 = 12,
-        Baurate_9600 = 13,
-        Baurate_19200 = 14,
-        Baurate_38400 = 15,
-        Baurate_57600 = 4097,
+        Baudrate_2400 = 11,
+        Baudrate_4800 = 12,
+        Baudrate_9600 = 13,
+        Baudrate_19200 = 14,
+        Baudrate_38400 = 15,
+        Baudrate_57600 = 4097,
         Baudrate_115200 = 4098
     };
     Q_ENUM(Baudrate)
@@ -43,13 +44,14 @@ public:
     };
     Q_ENUM(Parity)
 
-    explicit WriteSettings(const QString &serialPort, QObject *parent = nullptr);
-
+    explicit WriteSettings(const QString &serialPort, uint baudrate, QSerialPort::Parity parity, QObject *parent = nullptr);
     void write(uint address, Baudrate baud, Parity parity);
+
 private:
     QModbusRtuSerialMaster *m_master = nullptr;
-signals:
 
+signals:
+    void writeFinished();
 };
 
 #endif // WRITESETTINGS_H
