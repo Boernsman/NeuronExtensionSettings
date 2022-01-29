@@ -1,6 +1,6 @@
 /*
  * This file is part of the Neuron Extension Settings application.
- * Copyright (c) 2022 Berhard Trinnes.
+ * Copyright (c) 2022 Bernhard Trinnes.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,11 +24,8 @@ Discovery::Discovery(const QString &serialPort, uint baudrate, QSerialPort::Pari
 {
     m_master = new QModbusRtuSerialMaster(this);
     m_master->setConnectionParameter(QModbusDevice::SerialPortNameParameter, serialPort);
-    m_master->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::StopBits::OneStop);
-    m_master->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::DataBits::Data8);
     m_master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, baudrate);
     m_master->setConnectionParameter(QModbusDevice::SerialParityParameter, parity);
-
     m_master->setTimeout(200);
     m_master->setNumberOfRetries(0);
 

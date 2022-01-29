@@ -1,6 +1,6 @@
 /*
  * This file is part of the Neuron Extension Settings application.
- * Copyright (c) 2022 Berhard Trinnes.
+ * Copyright (c) 2022 Bernhard Trinnes.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ void WriteSettings::write(uint address, uint writeAddress, WriteSettings::Baudra
         return;
     }
     uint16_t valueReg0 = 0x0000; //Register 1027
-    uint16_t valueReg1 = 0x0000; //Register 1028
+    uint16_t valueReg1 = writeAddress; //Register 1028
 
     valueReg0 = writeBaud; //first 12 bits
 
@@ -60,9 +60,6 @@ void WriteSettings::write(uint address, uint writeAddress, WriteSettings::Baudra
             valueReg0 |= (1 << 14);
         }
     }
-    //valueReg0 |= (1 << 15);
-    valueReg1 = writeAddress;
-
     if (!m_master->connectDevice()) {
         qWarning() << "     - Connecing to modbus RTU master failed";
         return;

@@ -1,6 +1,6 @@
 /*
  * This file is part of the Neuron Extension Settings application.
- * Copyright (c) 2022 Berhard Trinnes.
+ * Copyright (c) 2022 Bernhard Trinnes.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,12 +27,12 @@
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("NeuronExtensionSettings");
     QCoreApplication::setApplicationVersion("1.0");
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("Neuron extension tool, to set baudrate and address.");
+    parser.setApplicationDescription("Neuron extension tool, to set baudrate, parity and address.");
     parser.addHelpOption();
     parser.addVersionOption();
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     parser.addOption(writeparityOption);
 
     // Process the actual command line arguments given by the user
-    parser.process(a);
+    parser.process(app);
     QTextStream qtin(stdin);
 
     QString portName;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    int baudrate = 115200;
+    int baudrate = 19200;
     if (parser.isSet(baudOption)) {
         bool ok;
         baudrate = parser.value(baudOption).toInt(&ok);
@@ -131,15 +131,21 @@ int main(int argc, char *argv[])
     }
 
     if (parser.isSet(discoveryOption)) {
-        qDebug() << "Discovery: Port" << portName << "baud rate" << baudrate << "parity" << parity;
+        qDebug() << "Discovery:";
+        qDebug() << "   - Port" << portName;
+        qDebug() << "   - Baud rate" << baudrate;
+        qDebug() << "   - Parity" << parity;
+        qDebug() << "   - Start address" << 1;
+        qDebug() << "   - End address" << 15;
         Discovery *discover = new Discovery(portName, baudrate, parity);
         if (!discover->startDiscovery(1, 15)) {
             return -1;
         }
-        QObject::connect(discover, &Discovery::discoveryFinished, &a, &QCoreApplication::quit);
+        QObject::connect(discover, &Discovery::discoveryFinished, [&app, discover] {
+            delete discover;
+            app.quit();
+        });
     } else if (parser.isSet(writeOption)){
-
-        WriteSettings *settings = new WriteSettings(portName, baudrate, parity);
 
         int address = 15;
         if (parser.isSet(addressOption)) {
@@ -192,7 +198,7 @@ int main(int argc, char *argv[])
         }
         WriteSettings::Parity writeSettingParity = WriteSettings::Parity::ParityEven;
         if (parser.isSet(writeparityOption)) {
-            QString writeParityValue = parser.value(parityOption);
+            QString writeParityValue = parser.value(writeparityOption);
             if (writeParityValue.startsWith("none")) {
                 writeSettingParity = WriteSettings::Parity::ParityNone;
             } else if (writeParityValue.startsWith("even")) {
@@ -213,11 +219,15 @@ int main(int argc, char *argv[])
         qDebug() << "   - Write address:" << writeSettingAddress;
         qDebug() << "   - Write baudrate:" << writeSettingBaudrate;
         qDebug() << "   - Write parity:" << writeSettingParity;
+        WriteSettings *settings = new WriteSettings(portName, baudrate, parity);
         settings->write(address, writeSettingAddress, writeSettingBaudrate, writeSettingParity);
-        QObject::connect(settings, &WriteSettings::writeFinished, &a, &QCoreApplication::quit);
+        QObject::connect(settings, &WriteSettings::writeFinished, [&app, settings] {
+            delete settings;
+            app.quit();
+        });
     } else {
         qDebug() << "No discovery and no write option is set. Doing nothing.";
     }
 
-    return a.exec();
+    return app.exec();
 }

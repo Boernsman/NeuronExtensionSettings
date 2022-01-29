@@ -1,6 +1,6 @@
 /*
  * This file is part of the Neuron Extension Settings application.
- * Copyright (c) 2022 Berhard Trinnes.
+ * Copyright (c) 2022 Bernhard Trinnes.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
