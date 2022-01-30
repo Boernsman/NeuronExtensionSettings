@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         discovery.cpp \
         main.cpp \
+        test.cpp \
         writesettings.cpp
 
 # Default rules for deployment.
@@ -27,4 +28,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     discovery.h \
+    test.h \
     writesettings.h

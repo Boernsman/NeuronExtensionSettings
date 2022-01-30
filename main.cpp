@@ -24,6 +24,7 @@
 
 #include "discovery.h"
 #include "writesettings.h"
+#include "test.h"
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +45,9 @@ int main(int argc, char *argv[])
 
     QCommandLineOption writeOption("write", "Write settings to neuron extension.");
     parser.addOption(writeOption);
+
+    QCommandLineOption testOption("test", "Test neuron extension connection.");
+    parser.addOption(testOption);
 
     QCommandLineOption serialPortOption(QStringList() << "s" << "serial port", "System path to serial port", "serial port");
     parser.addOption(serialPortOption);
@@ -126,6 +130,16 @@ int main(int argc, char *argv[])
         qDebug() << "Default parity:" << parity;
     }
 
+    int address = 15;
+    if (parser.isSet(addressOption)) {
+        bool ok;
+        address = parser.value(addressOption).toInt(&ok);
+        if (!ok) {
+            qDebug() << "Address is not valid" << parser.value(addressOption);
+            return -1;
+        }
+    }
+
     if (parser.isSet(verboseOption)) {
         QLoggingCategory::setFilterRules(QStringLiteral("qt.modbus* = true"));
     }
@@ -146,16 +160,6 @@ int main(int argc, char *argv[])
             app.quit();
         });
     } else if (parser.isSet(writeOption)){
-
-        int address = 15;
-        if (parser.isSet(addressOption)) {
-            bool ok;
-            address = parser.value(addressOption).toInt(&ok);
-            if (!ok) {
-                qDebug() << "Address is not valid" << parser.value(addressOption);
-                return -1;
-            }
-        }
 
         int writeSettingAddress = 15;
         if (parser.isSet(writeaddressOption)) {
@@ -223,6 +227,19 @@ int main(int argc, char *argv[])
         settings->write(address, writeSettingAddress, writeSettingBaudrate, writeSettingParity);
         QObject::connect(settings, &WriteSettings::writeFinished, [&app, settings] {
             delete settings;
+            app.quit();
+        });
+    } else if (parser.isSet(testOption)){
+        int testCycles = 100;
+        qDebug() << "Teset connection";
+        qDebug() << "   - Address:" << address;
+        qDebug() << "   - Baudrate:" << baudrate;
+        qDebug() << "   - Parity:" << parity;
+        qDebug() << "   - Test cycles:" << testCycles;
+        Test *test = new Test(portName, baudrate, parity);
+        test->start(address, testCycles);
+        QObject::connect(test, &Test::testFinished, [&app, test] {
+            delete test;
             app.quit();
         });
     } else {
