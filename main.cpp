@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
             return -1;
         }
         QObject::connect(discover, &Discovery::discoveryFinished, [&app, discover] {
-            delete discover;
+            discover->deleteLater();
             app.quit();
         });
     } else if (parser.isSet(writeOption)){
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
         WriteSettings *settings = new WriteSettings(portName, baudrate, parity);
         settings->write(address, writeSettingAddress, writeSettingBaudrate, writeSettingParity);
         QObject::connect(settings, &WriteSettings::writeFinished, [&app, settings] {
-            delete settings;
+            settings->deleteLater();
             app.quit();
         });
     } else if (parser.isSet(testOption)){
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
         Test *test = new Test(portName, baudrate, parity);
         test->start(address, testCycles);
         QObject::connect(test, &Test::testFinished, [&app, test] {
-            delete test;
+            test->deleteLater();
             app.quit();
         });
     } else {

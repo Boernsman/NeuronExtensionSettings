@@ -71,22 +71,22 @@ void WriteSettings::write(uint address, uint writeAddress, WriteSettings::Baudra
 
     if (QModbusReply *reply = m_master->sendWriteRequest(request, address)) {
         if (!reply->isFinished()) {
-            connect(reply, &QModbusReply::finished, this, [=] {
+            connect(reply, &QModbusReply::finished, this, [reply, address, this] {
                 if (reply->error() == QModbusDevice::NoError) {
                     qDebug() << "Writing settings successfull";
                     qDebug() << "Sending store command";
                     QModbusDataUnit request2 = QModbusDataUnit(QModbusDataUnit::RegisterType::Coils, 1003, 1);
                     request2.setValue(0, 0x0001);
-                    if (QModbusReply *reply2 = m_master->sendWriteRequest(request, address)) {
+                    if (QModbusReply *reply2 = m_master->sendWriteRequest(request2, address)) {
                         if (!reply2->isFinished()) {
                             connect(reply2, &QModbusReply::finished, reply2, &QModbusReply::deleteLater);
-                            connect(reply2, &QModbusReply::finished, this, [=] {
+                            connect(reply2, &QModbusReply::finished, this, [reply2, this] {
                                 if (reply2->error() == QModbusDevice::NoError) {
                                     qDebug() << "Storing the values was successfull";
                                     qDebug() << "Power cycle the extension now!";
                                     emit writeFinished();
                                 } else {
-                                    qDebug() << "Error" << reply->errorString();
+                                    qDebug() << "Error" << reply2->errorString();
                                 }
                             });
                         } else {
