@@ -70,6 +70,9 @@ int main(int argc, char *argv[])
     QCommandLineOption writeparityOption(QStringList() << "wp" << "writeparity", "Set write parity even|none, 'even' is default", "parity");
     parser.addOption(writeparityOption);
 
+    QCommandLineOption endaddressOption(QStringList() << "endaddress", "Set discovery end-address. 15 is default", "addresss");
+    parser.addOption(endaddressOption);
+
     // Process the actual command line arguments given by the user
     parser.process(app);
     QTextStream qtin(stdin);
@@ -147,14 +150,24 @@ int main(int argc, char *argv[])
     }
 
     if (parser.isSet(discoveryOption)) {
+
+        int endaddress = 15;
+        if (parser.isSet(endaddressOption)) {
+            bool ok;
+            endaddress = parser.value(endaddressOption).toInt(&ok);
+            if (!ok) {
+                qDebug() << "Discovery end address is not valid" << parser.value(endaddressOption);
+                return -1;
+            }
+        }
         qDebug() << "Discovery:";
         qDebug() << "   - Port" << portName;
         qDebug() << "   - Baud rate" << baudrate;
         qDebug() << "   - Parity" << parity;
         qDebug() << "   - Start address" << 1;
-        qDebug() << "   - End address" << 15;
+        qDebug() << "   - End address" << endaddress;
         Discovery *discover = new Discovery(portName, baudrate, parity);
-        if (!discover->startDiscovery(1, 15)) {
+        if (!discover->startDiscovery(1, endaddress)) {
             return -1;
         }
         QObject::connect(discover, &Discovery::discoveryFinished, [&app, discover] {
