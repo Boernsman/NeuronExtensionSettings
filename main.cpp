@@ -123,8 +123,10 @@ int main(int argc, char *argv[])
             parity = QSerialPort::Parity::NoParity;
         } else if (parityValue.startsWith("even")) {
             parity = QSerialPort::Parity::EvenParity;
+        } else if (parityValue.startsWith("odd")) {
+            parity = QSerialPort::Parity::OddParity;
         } else {
-            qDebug() << "Parity" << parityValue << "is not supported, must be 'even' or 'none'";
+            qDebug() << "Parity" << parityValue << "is not supported, must be 'even','odd' or 'none'";
         }
     } else {
         qDebug() << "Default parity:" << parity;
