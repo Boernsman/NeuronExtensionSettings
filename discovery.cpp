@@ -24,6 +24,8 @@ Discovery::Discovery(const QString &serialPort, uint baudrate, QSerialPort::Pari
 {
     m_master = new QModbusRtuSerialMaster(this);
     m_master->setConnectionParameter(QModbusDevice::SerialPortNameParameter, serialPort);
+    m_master->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::StopBits::OneStop);
+    m_master->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::DataBits::Data8);
     m_master->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, baudrate);
     m_master->setConnectionParameter(QModbusDevice::SerialParityParameter, parity);
     m_master->setTimeout(200);
