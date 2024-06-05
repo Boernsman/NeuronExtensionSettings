@@ -1,0 +1,43 @@
+---
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run clang-format check.
+      uses: jidicula/clang-format-action@v4.14.0
+      with:
+        clang-format-version: '19'
+  
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libmodbus-dev libboost-all-dev
+
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure project with CMake
+      working-directory: build
+      run: cmake ..
+
+    - name: Build the project
+      working-directory: build
+      run: cmake --build .
+

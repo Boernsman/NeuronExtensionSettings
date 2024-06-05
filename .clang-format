@@ -1,0 +1,9 @@
+---
+Language:        Cpp
+BasedOnStyle:    Google
+IndentWidth: 2
+ColumnLimit: 120
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  SplitEmptyFunction: false
