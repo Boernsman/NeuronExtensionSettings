@@ -107,8 +107,9 @@ int main(int argc, char *argv[])
       if (devices.empty()) {
         std::cout << "Found no devices" << std::endl;
       } else {
+        std::cout << "Found " << devices.size() << (devices.size() > 1 ? " devices" : " device") << std::endl;
         for (const auto &[address, device_type] : devices) {
-          std::cout << "  - Device " << device_type << " address: " << address << std::endl;
+          std::cout << "  - Neuron " << bus.getDeviceTypeString(device_type) << " address: " << address << std::endl;
         }
       }
     } else if (command == "write") {

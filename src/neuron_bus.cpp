@@ -82,47 +82,61 @@ std::optional<uint16_t> NeuronBus::getRegisterAddress(uint address)
 std::optional<NeuronBus::DeviceType> NeuronBus::getDeviceType(uint16_t registerValue)
 {
   if (registerValue == 1) {
-    debug() << "Model xS10";
     return DeviceType::xS10;
   } else if (registerValue == 784) {
-    debug() << "Model xS30";
     return DeviceType::xS30;
   } else if (registerValue == 528) {
-    debug() << "Model xS40";
     return DeviceType::xS40;
   } else if (registerValue == 5) {
-    debug() << "Model xS50";
     return DeviceType::xS50;
   } else if (registerValue == 272) {
-    debug() << "Model xS11";
     return DeviceType::xS11;
   } else if (registerValue == 273) {
-    debug() << "Model xS51";
     return DeviceType::xS51;
   } else {
-    debug() << "Unkown model";
     return std::nullopt;
   }
+}
+
+std::string NeuronBus::getDeviceTypeString(NeuronBus::DeviceType deviceType)
+{
+  switch (deviceType) {
+    case DeviceType::xS10:
+      return "xS10";
+    case DeviceType::xS11:
+      return "xS11";
+    case DeviceType::xS30:
+      return "xS30";
+    case DeviceType::xS40:
+      return "xS40";
+    case DeviceType::xS50:
+      return "xS50";
+    case DeviceType::xS51:
+      return "xS51";
+  }
+  return "unknown";
 }
 
 std::map<uint, NeuronBus::DeviceType> NeuronBus::discoverDevices(uint startAddress, uint endAddress)
 {
   std::map<uint, DeviceType> devices;
-  for (uint address = startAddress; address < endAddress; address++) {
+  std::cout << "Starting discover devices. From address " << startAddress << " to " << endAddress << std::endl;
+
+  for (int address : std::ranges::iota_view{startAddress, endAddress+1}) {
     client_->setSlave(address);
-    auto result = client_->readRegisters(1000, 7);
-    std::cout << "Probing address" << address << std::endl;
-
-    if (result.empty()) {
+    std::cout << address << " " << std::flush;
+    try {
+      auto result = client_->readRegisters(1000, 7);
+      auto deviceType = getDeviceType(result.at(4));
+      if (!deviceType) {
+        continue;
+      }
+      devices[address] = deviceType.value();
+    } catch (...) {
       continue;
     }
-
-    auto deviceType = getDeviceType(result.at(4));
-    if (!deviceType) {
-      continue;
-    }
-    devices[address] = deviceType.value();
   }
+  std::cout << std::endl;
   return devices;
 }
 

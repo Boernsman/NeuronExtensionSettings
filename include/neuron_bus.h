@@ -55,8 +55,9 @@ class NeuronBus {
 
   TestResult test(uint address, uint cycles);
   void writeSettings(uint address, const DeviceSettings &settings);
-  std::optional<DeviceType> getDeviceType(uint16_t registerValue);
-  std::map<uint, DeviceType> discoverDevices(uint startAddress = 1, uint endAddress = 7);
+  static std::optional<DeviceType> getDeviceType(uint16_t registerValue);
+  static std::string getDeviceTypeString(DeviceType deviceType);
+  std::map<uint, DeviceType> discoverDevices(uint startAddress = 1, uint endAddress = 15);
 
  private:
   ModbusClient *client_ = nullptr;
