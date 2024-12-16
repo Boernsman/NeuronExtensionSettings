@@ -40,7 +40,9 @@ class NeuronBus {
   };
 
   struct TestResult {
-    int errors;
+    uint cycles;
+    uint errors;
+    double avarage_response_time;
   };
 
   struct DeviceSettings {

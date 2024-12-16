@@ -94,7 +94,10 @@ int main(int argc, char *argv[])
     if (command == "test") {
       std::cout << "Testing...\n";
       auto test_result = bus.test(address, testCycles);
-      std::cout << "Test finished\n  - Error count: " << test_result.errors << std::endl;
+      std::cout << "Test finished" <<
+      "\n  - Error count: " << test_result.errors <<
+      "\n  - Average response time: " << test_result.avarage_response_time <<
+      "\n  - Cycles: " << test_result.cycles << std::endl;
 
     } else if (command == "discover") {
       const auto endAddress = 15;

@@ -128,37 +128,26 @@ std::map<uint, NeuronBus::DeviceType> NeuronBus::discoverDevices(uint startAddre
 
 NeuronBus::TestResult NeuronBus::test(uint address, uint cycles)
 {
-  auto error_count = 0;
-  auto average_elapsed_time = 0.00;
+  TestResult result = {.cycles = cycles, .errors = 0u, .avarage_response_time = 0.00};
 
   client_->setSlave(address);
+  std::cout << "Starting test. " << cycles << " cycles ('.'=OK, 'x'=Failed)" << std::endl;
 
-  for (int i : std::ranges::iota_view{1, 10}) {
+  for (int i : std::ranges::iota_view{0u, cycles}) {
     try {
       const auto start_time = std::chrono::steady_clock::now();
 
-      auto value = client_->readRegister(31);
+      auto value = client_->readRegister(1004);
+      std::cout << "." << std::flush;
       const std::chrono::duration<double> elapsed_seconds = std::chrono::steady_clock::now() - start_time;
-      debug() << "Reply received, elapsed time" << elapsed_seconds.count() << "milli-seconds";
 
-      if (average_elapsed_time == 0) {
-        average_elapsed_time = elapsed_seconds.count();
-      } else {
-        average_elapsed_time = (average_elapsed_time + elapsed_seconds.count() / 2);
-      }
-
-      uint16_t newValue;
-      if (cycles == 0) {
-      }
-      if (value & 0x10) {
-        newValue = value << 1;
-      } else {
-        newValue = (value << 1) | 0x01;
-      }
-
+      result.avarage_response_time += elapsed_seconds.count();
     } catch (...) {
+      std::cout << "x" << std::flush;
+      result.errors++;
     }
   }
-
-  return TestResult{.errors = error_count};
+  result.avarage_response_time /= (cycles - result.errors);
+  std::cout << std::endl;
+  return result;
 }

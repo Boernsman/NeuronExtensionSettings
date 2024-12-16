@@ -19,16 +19,12 @@
 #define DEBUG_H
 
 #include <iostream>
-#include <source_location>
 #include <sstream>
 #include <string>
 
 class DebugStream {
  public:
-  DebugStream(const std::source_location &location = std::source_location::current()) : location_(location)
-  {
-    stream_ << location_.file_name() << ":" << location_.line() << " (" << location_.function_name() << ") ";
-  }
+  DebugStream() {}
 
   template <typename T>
   DebugStream &operator<<(const T &value)
@@ -41,7 +37,6 @@ class DebugStream {
 
  private:
   std::ostringstream stream_;
-  std::source_location location_;
 };
 
 #define debug() DebugStream()
