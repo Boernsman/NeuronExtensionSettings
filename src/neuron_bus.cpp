@@ -18,22 +18,22 @@
 #include "neuron_bus.h"
 
 #include <chrono>
+#include <iostream>
 #include <ranges>
-
-#include "debug.h"
 
 void NeuronBus::writeSettings(uint address, const NeuronBus::DeviceSettings &settings)
 {
-  debug() << "Writing settings";
-  if (settings.address < 1 || settings.address > 255) {
+  client_->setSlave(address);
+
+  std::cout << "Writing settings" << std::endl;
+  if (address < 1 || address > 255) {
     throw std::runtime_error("Invalid device address [1, 255]");
   }
   std::vector<u_int16_t> registers(2, 0);
 
-  uint16_t valueReg0 = 0x0000;         // Register 1027
-  registers.at(1) = settings.address;  // Register 1028
-
-  registers.at(0) = settings.baudrate;  // first 12 bits
+  uint16_t valueReg0 = 0x0000;          // Register 1027
+  registers.at(1) = settings.address;   // Register 1028
+  registers.at(0) = settings.baudrate;  // First 12 bits
 
   if (settings.parity != ModbusClient::Parity::None) {
     registers.at(0) |= (1 << 13);
@@ -46,8 +46,54 @@ void NeuronBus::writeSettings(uint address, const NeuronBus::DeviceSettings &set
     throw std::runtime_error("Could not gather register address");
   }
   client_->writeRegisters(register_address.value(), registers);
-
   client_->writeCoil(1003, 0x0001);
+}
+
+NeuronBus::DeviceSettings NeuronBus::createDeviceSettings(int address, int baudrate, const std::string &parity)
+{
+  DeviceSettings settings;
+  if (address < 1 || address > 255) {
+    throw std::runtime_error("Invalid device address [1, 255]");
+  }
+  settings.address = address;
+
+  switch (baudrate) {
+    case 2400:
+      settings.baudrate = Baudrate_2400;
+      break;
+    case 4800:
+      settings.baudrate = Baudrate_4800;
+      break;
+    case 9600:
+      settings.baudrate = Baudrate_9600;
+      break;
+    case 19200:
+      settings.baudrate = Baudrate_19200;
+      break;
+    case 38400:
+      settings.baudrate = Baudrate_38400;
+      break;
+    case 57600:
+      settings.baudrate = Baudrate_57600;
+      break;
+    case 115200:
+      settings.baudrate = Baudrate_115200;
+      break;
+    default:
+      throw std::runtime_error("Invalid baud rate setting");
+  }
+
+  if (parity == "even") {
+    settings.parity = ModbusClient::Parity::Even;
+  } else if (parity == "odd") {
+    settings.parity = ModbusClient::Parity::Odd;
+  } else if (parity == "none") {
+    settings.parity = ModbusClient::Parity::None;
+  } else {
+    throw std::runtime_error("Invalid parity string, must be 'even', 'odd' or 'none'");
+  }
+
+  return settings;
 }
 
 std::optional<uint16_t> NeuronBus::getRegisterAddress(uint address)
@@ -122,7 +168,7 @@ std::map<uint, NeuronBus::DeviceType> NeuronBus::discoverDevices(uint startAddre
   std::map<uint, DeviceType> devices;
   std::cout << "Starting discover devices. From address " << startAddress << " to " << endAddress << std::endl;
 
-  for (int address : std::ranges::iota_view{startAddress, endAddress+1}) {
+  for (int address : std::ranges::iota_view{startAddress, endAddress + 1}) {
     client_->setSlave(address);
     std::cout << address << " " << std::flush;
     try {

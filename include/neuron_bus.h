@@ -54,6 +54,7 @@ class NeuronBus {
   explicit NeuronBus(ModbusClient *client) : client_(client) {};
 
   TestResult test(uint address, uint cycles);
+  static DeviceSettings createDeviceSettings(int address, int baudrate, const std::string &parity);
   void writeSettings(uint address, const DeviceSettings &settings);
   static std::optional<DeviceType> getDeviceType(uint16_t registerValue);
   static std::string getDeviceTypeString(DeviceType deviceType);
