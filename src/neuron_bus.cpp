@@ -18,22 +18,22 @@
 #include "neuron_bus.h"
 
 #include <chrono>
+#include <iostream>
 #include <ranges>
-
-#include "debug.h"
 
 void NeuronBus::writeSettings(uint address, const NeuronBus::DeviceSettings &settings)
 {
-  debug() << "Writing settings";
-  if (settings.address < 1 || settings.address > 255) {
+  client_->setSlave(address);
+
+  std::cout << "Writing settings" << std::endl;
+  if (address < 1 || address > 255) {
     throw std::runtime_error("Invalid device address [1, 255]");
   }
   std::vector<u_int16_t> registers(2, 0);
 
-  uint16_t valueReg0 = 0x0000;         // Register 1027
-  registers.at(1) = settings.address;  // Register 1028
-
-  registers.at(0) = settings.baudrate;  // first 12 bits
+  uint16_t valueReg0 = 0x0000;          // Register 1027
+  registers.at(1) = settings.address;   // Register 1028
+  registers.at(0) = settings.baudrate;  // First 12 bits
 
   if (settings.parity != ModbusClient::Parity::None) {
     registers.at(0) |= (1 << 13);
@@ -46,8 +46,54 @@ void NeuronBus::writeSettings(uint address, const NeuronBus::DeviceSettings &set
     throw std::runtime_error("Could not gather register address");
   }
   client_->writeRegisters(register_address.value(), registers);
-
   client_->writeCoil(1003, 0x0001);
+}
+
+NeuronBus::DeviceSettings NeuronBus::createDeviceSettings(int address, int baudrate, const std::string &parity)
+{
+  DeviceSettings settings;
+  if (address < 1 || address > 255) {
+    throw std::runtime_error("Invalid device address [1, 255]");
+  }
+  settings.address = address;
+
+  switch (baudrate) {
+    case 2400:
+      settings.baudrate = Baudrate_2400;
+      break;
+    case 4800:
+      settings.baudrate = Baudrate_4800;
+      break;
+    case 9600:
+      settings.baudrate = Baudrate_9600;
+      break;
+    case 19200:
+      settings.baudrate = Baudrate_19200;
+      break;
+    case 38400:
+      settings.baudrate = Baudrate_38400;
+      break;
+    case 57600:
+      settings.baudrate = Baudrate_57600;
+      break;
+    case 115200:
+      settings.baudrate = Baudrate_115200;
+      break;
+    default:
+      throw std::runtime_error("Invalid baud rate setting");
+  }
+
+  if (parity == "even") {
+    settings.parity = ModbusClient::Parity::Even;
+  } else if (parity == "odd") {
+    settings.parity = ModbusClient::Parity::Odd;
+  } else if (parity == "none") {
+    settings.parity = ModbusClient::Parity::None;
+  } else {
+    throw std::runtime_error("Invalid parity string, must be 'even', 'odd' or 'none'");
+  }
+
+  return settings;
 }
 
 std::optional<uint16_t> NeuronBus::getRegisterAddress(uint address)
@@ -82,83 +128,86 @@ std::optional<uint16_t> NeuronBus::getRegisterAddress(uint address)
 std::optional<NeuronBus::DeviceType> NeuronBus::getDeviceType(uint16_t registerValue)
 {
   if (registerValue == 1) {
-    debug() << "Model xS10";
     return DeviceType::xS10;
   } else if (registerValue == 784) {
-    debug() << "Model xS30";
     return DeviceType::xS30;
   } else if (registerValue == 528) {
-    debug() << "Model xS40";
     return DeviceType::xS40;
   } else if (registerValue == 5) {
-    debug() << "Model xS50";
     return DeviceType::xS50;
   } else if (registerValue == 272) {
-    debug() << "Model xS11";
     return DeviceType::xS11;
   } else if (registerValue == 273) {
-    debug() << "Model xS51";
     return DeviceType::xS51;
   } else {
-    debug() << "Unkown model";
     return std::nullopt;
   }
+}
+
+std::string NeuronBus::getDeviceTypeString(NeuronBus::DeviceType deviceType)
+{
+  switch (deviceType) {
+    case DeviceType::xS10:
+      return "xS10";
+    case DeviceType::xS11:
+      return "xS11";
+    case DeviceType::xS30:
+      return "xS30";
+    case DeviceType::xS40:
+      return "xS40";
+    case DeviceType::xS50:
+      return "xS50";
+    case DeviceType::xS51:
+      return "xS51";
+  }
+  return "unknown";
 }
 
 std::map<uint, NeuronBus::DeviceType> NeuronBus::discoverDevices(uint startAddress, uint endAddress)
 {
   std::map<uint, DeviceType> devices;
-  for (uint address = startAddress; address < endAddress; address++) {
+  std::cout << "Starting discover devices. From address " << startAddress << " to " << endAddress << std::endl;
+
+  for (int address : std::ranges::iota_view{startAddress, endAddress + 1}) {
     client_->setSlave(address);
-    auto result = client_->readRegisters(1000, 7);
-    std::cout << "Probing address" << address << std::endl;
-
-    if (result.empty()) {
+    std::cout << address << " " << std::flush;
+    try {
+      auto result = client_->readRegisters(1000, 7);
+      auto deviceType = getDeviceType(result.at(4));
+      if (!deviceType) {
+        continue;
+      }
+      devices[address] = deviceType.value();
+    } catch (...) {
       continue;
     }
-
-    auto deviceType = getDeviceType(result.at(4));
-    if (!deviceType) {
-      continue;
-    }
-    devices[address] = deviceType.value();
   }
+  std::cout << std::endl;
   return devices;
 }
 
 NeuronBus::TestResult NeuronBus::test(uint address, uint cycles)
 {
-  auto error_count = 0;
-  auto average_elapsed_time = 0.00;
+  TestResult result = {.cycles = cycles, .errors = 0u, .avarage_response_time = 0.00};
 
   client_->setSlave(address);
+  std::cout << "Starting test. " << cycles << " cycles ('.'=OK, 'x'=Failed)" << std::endl;
 
-  for (int i : std::ranges::iota_view{1, 10}) {
+  for (int i : std::ranges::iota_view{0u, cycles}) {
     try {
       const auto start_time = std::chrono::steady_clock::now();
 
-      auto value = client_->readRegister(31);
+      auto value = client_->readRegister(1004);
+      std::cout << "." << std::flush;
       const std::chrono::duration<double> elapsed_seconds = std::chrono::steady_clock::now() - start_time;
-      debug() << "Reply received, elapsed time" << elapsed_seconds.count() << "milli-seconds";
 
-      if (average_elapsed_time == 0) {
-        average_elapsed_time = elapsed_seconds.count();
-      } else {
-        average_elapsed_time = (average_elapsed_time + elapsed_seconds.count() / 2);
-      }
-
-      uint16_t newValue;
-      if (cycles == 0) {
-      }
-      if (value & 0x10) {
-        newValue = value << 1;
-      } else {
-        newValue = (value << 1) | 0x01;
-      }
-
+      result.avarage_response_time += elapsed_seconds.count();
     } catch (...) {
+      std::cout << "x" << std::flush;
+      result.errors++;
     }
   }
-
-  return TestResult{.errors = error_count};
+  result.avarage_response_time /= (cycles - result.errors);
+  std::cout << std::endl;
+  return result;
 }

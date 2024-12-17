@@ -40,7 +40,9 @@ class NeuronBus {
   };
 
   struct TestResult {
-    int errors;
+    uint cycles;
+    uint errors;
+    double avarage_response_time;
   };
 
   struct DeviceSettings {
@@ -52,9 +54,11 @@ class NeuronBus {
   explicit NeuronBus(ModbusClient *client) : client_(client) {};
 
   TestResult test(uint address, uint cycles);
+  static DeviceSettings createDeviceSettings(int address, int baudrate, const std::string &parity);
   void writeSettings(uint address, const DeviceSettings &settings);
-  std::optional<DeviceType> getDeviceType(uint16_t registerValue);
-  std::map<uint, DeviceType> discoverDevices(uint startAddress = 1, uint endAddress = 7);
+  static std::optional<DeviceType> getDeviceType(uint16_t registerValue);
+  static std::string getDeviceTypeString(DeviceType deviceType);
+  std::map<uint, DeviceType> discoverDevices(uint startAddress = 1, uint endAddress = 15);
 
  private:
   ModbusClient *client_ = nullptr;

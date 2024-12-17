@@ -16,7 +16,7 @@ cmake .. && make
 ### Discovery
 
 ```
-sudo ./neuron_extension_settings discover
+sudo ./neuron_extension_settings discover --serial /dev/ttyNS0
 ```
 
 In this mode the settings are like the same as unconfigured Neuron extensions.
@@ -26,14 +26,14 @@ The application starts to discover all Neuron extension devices on the bus.
 ### Test
 
 ```
-sudo ./neuron_extension_settings test
+sudo ./neuron_extension_settings test --serial /dev/ttyNS0
 ```
 
 
 ### Write settings
 
 ```
-sudo ./neuron_extension_settings write --w_baud=115200 --w_address=1 --w_parity=even
+sudo ./neuron_extension_settings write --serial /dev/ttyNS0 --w_baud=115200 --w_address=1 --w_parity=even
 ```
 
 This command writes the settings baudrate 115200, address 1 and parity even to an unconfigured Neuron extesion. After a successfull write the extension needs to be restarted.

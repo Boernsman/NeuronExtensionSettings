@@ -49,32 +49,33 @@ int main(int argc, char *argv[])
   uint address = 15;
 
   int w_baudrate = 19200;
-  uint w_address = 15;
+  uint w_address = 1;
   std::string w_parity_string;
 
   try {
     po::options_description desc("Neuron Extension Bus Settings\nOptions");
-    desc.add_options()("help,h", "Show help message")("command", po::value(&command)->required(),
-                                                      "Command: test, discover, write")(
-        "serial,s", po::value(&port_name)->required(), "Set the serial port")(
+    desc.add_options()("help,h", "Show help message")("command", po::value<std::string>(&command)->required(),
+                                                      "filename")("serial,s", po::value(&port_name)->required(),
+                                                                  "Set the serial port")(
         "baud,b", po::value(&baudrate)->default_value(19200), "Set the baudrate")(
         "address,a", po::value(&address)->default_value(15), "Set the slave address")(
         "parity,p", po::value(&parity_string)->default_value("none"), "Set parity (even|none|odd)")(
         "wbaud", po::value(&w_baudrate)->default_value(19200), "Write baudrate for write option")(
         "wparity", po::value(&w_parity_string)->default_value("none"), "Write parity (even|none|odd) for write option")(
-        "waddress", po::value(&w_baudrate)->default_value(19200), "Write address");
+        "waddress", po::value(&w_address)->default_value(1), "Write address");
 
-    po::positional_options_description p;
-    p.add("command", 1);
+    po::positional_options_description positional;
+    positional.add("command", 1);
 
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::store(po::command_line_parser(argc, argv).options(desc).positional(positional).run(), vm);
     po::notify(vm);
 
     if (vm.count("help")) {
       std::cout << desc << std::endl;
       return 0;
     }
+
   } catch (const std::exception &e) {
     std::cerr << "Error parsing command line arguments: " << e.what() << std::endl;
     return -1;
@@ -90,11 +91,13 @@ int main(int argc, char *argv[])
     client.setSlave(address);
     auto bus = NeuronBus{&client};
 
-    int testCycles = 100;
     if (command == "test") {
+      const auto testCycles = 100;
       std::cout << "Testing...\n";
       auto test_result = bus.test(address, testCycles);
-      std::cout << "Test finished\n  - Error count: " << test_result.errors << std::endl;
+      std::cout << "Test finished" << "\n  - Error count: " << test_result.errors
+                << "\n  - Average response time: " << test_result.avarage_response_time
+                << "\n  - Cycles: " << test_result.cycles << std::endl;
 
     } else if (command == "discover") {
       const auto endAddress = 15;
@@ -104,16 +107,16 @@ int main(int argc, char *argv[])
       if (devices.empty()) {
         std::cout << "Found no devices" << std::endl;
       } else {
+        std::cout << "Found " << devices.size() << (devices.size() > 1 ? " devices:" : " device:") << std::endl;
         for (const auto &[address, device_type] : devices) {
-          std::cout << "  - Device " << device_type << " address: " << address << std::endl;
+          std::cout << "  - Neuron " << bus.getDeviceTypeString(device_type) << " address: " << address << std::endl;
         }
       }
     } else if (command == "write") {
-      NeuronBus::DeviceSettings settings;
-      settings.baudrate = NeuronBus::Baudrate::Baudrate_19200;
-      settings.parity = stringToParity(w_parity_string).value_or(ModbusClient::None);
-      settings.address = 1;
-      std::cout << "Writting settings to device address: " << address << std::endl;
+      auto settings = NeuronBus::createDeviceSettings(w_address, w_baudrate, w_parity_string);
+      std::cout << "Writting settings to device address: " << address << "\n  - Baudrate: " << w_baudrate
+                << "\n  - Address:  " << w_address << "\n  - Parity:   " << w_parity_string << std::endl;
+
       bus.writeSettings(address, settings);
       std::cout << "Settings have been written successfully" << std::endl;
 
