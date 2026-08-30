@@ -7,3 +7,8 @@ BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true
   SplitEmptyFunction: false
+# Pinned so formatting does not drift between clang-format versions.
+# Google style sets DerivePointerAlignment, which infers alignment from each
+# file and changed behaviour across releases; the sources use "T &value".
+DerivePointerAlignment: false
+PointerAlignment: Right

@@ -36,8 +36,7 @@
       "name": "app-release",
       "displayName": "App Release Build",
       "configurePreset": "release",
-      "configuration": "Release",
-      "targets": ["App"]
+      "configuration": "Release"
     }
   ],
   "testPresets": [
