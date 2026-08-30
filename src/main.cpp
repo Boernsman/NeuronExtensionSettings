@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include "debug.h"
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
   try {
     auto parity = stringToParity(parity_string);
     if (!parity) {
-      throw;
+      throw std::invalid_argument{"Invalid parity value. Must be 'even', 'none', or 'odd'."};
     }
     auto client = ModbusClient{port_name, baudrate, parity.value()};
     client.connect();

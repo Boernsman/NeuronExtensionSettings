@@ -1,14 +1,34 @@
 # Neuron Extension Settings
 
+[![CI](https://github.com/Boernsman/NeuronExtensionSettings/actions/workflows/release.yml/badge.svg)](https://github.com/Boernsman/NeuronExtensionSettings/actions/workflows/release.yml)
+
 Discover Neuron extension available on the bus and change baud rate, parity and address.
+
+## Requirements
+
+* Linux (Debian/Ubuntu).
+* CMake 3.19 or higher.
+* A C++20 compatible compiler (GCC 11 or newer).
+* pkg-config.
+* libmodbus.
+* Boost.ProgramOptions.
 
 ## Build
 
 ```
-sudo apt update && sudo apt upgrade -y
-sudo apt install git cmake build-essentials libmodbus libboost-dev
-mkdir build && cd build
-cmake .. && make
+sudo apt update
+sudo apt install git cmake g++ pkg-config libmodbus-dev libboost-program-options-dev
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+```
+
+The binary is written to `build/neuron_extension_settings`.
+
+Alternatively, the bundled CMake presets (Ninja based) can be used:
+
+```
+cmake --preset release
+cmake --build --preset app-release
 ```
 
 ## Usage
@@ -16,7 +36,7 @@ cmake .. && make
 ### Discovery
 
 ```
-sudo ./neuron_extension_settings discover --serial /dev/ttyNS0
+sudo ./build/neuron_extension_settings discover --serial /dev/ttyNS0
 ```
 
 In this mode the settings are like the same as unconfigured Neuron extensions.
@@ -26,14 +46,14 @@ The application starts to discover all Neuron extension devices on the bus.
 ### Test
 
 ```
-sudo ./neuron_extension_settings test --serial /dev/ttyNS0
+sudo ./build/neuron_extension_settings test --serial /dev/ttyNS0
 ```
 
 
 ### Write settings
 
 ```
-sudo ./neuron_extension_settings write --serial /dev/ttyNS0 --w_baud=115200 --w_address=1 --w_parity=even
+sudo ./build/neuron_extension_settings write --serial /dev/ttyNS0 --w_baud=115200 --w_address=1 --w_parity=even
 ```
 
 This command writes the settings baudrate 115200, address 1 and parity even to an unconfigured Neuron extesion. After a successfull write the extension needs to be restarted.
@@ -45,7 +65,7 @@ To change the settings all DIP switches must be set 'off'. Only one unconfigured
 Use the help option to display all available options
 
 ```
-./neuron_extension_settings --help
+./build/neuron_extension_settings --help
 ```
 
 ## License

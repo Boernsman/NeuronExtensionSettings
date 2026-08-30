@@ -1,4 +1,6 @@
 ---
+name: CI
+
 on:
   push:
     branches:
@@ -10,34 +12,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
 
-    - name: Run clang-format check.
-      uses: jidicula/clang-format-action@v4.14.0
-      with:
-        clang-format-version: '19'
-  
+      - name: Run clang-format check.
+        uses: jidicula/clang-format-action@v4.14.0
+        with:
+          clang-format-version: '19'
+
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake g++ libmodbus-dev libboost-all-dev
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            g++ \
+            libboost-program-options-dev \
+            libmodbus-dev \
+            pkg-config
 
-    - name: Create build directory
-      run: mkdir build
+      - name: Build the project
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
 
-    - name: Configure project with CMake
-      working-directory: build
-      run: cmake ..
-
-    - name: Build the project
-      working-directory: build
-      run: cmake --build .
-
+      - name: Upload build
+        uses: actions/upload-artifact@v7
+        with:
+          name: neuron_extension_settings-${{ github.sha }}
+          path: build/neuron_extension_settings
+          if-no-files-found: error
+          retention-days: 14
